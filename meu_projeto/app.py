@@ -1,6 +1,6 @@
 from flask import Flask, jsonify, request
 
-app = Flask(__name__)  #
+app = Flask(__name__)  # cria uma instância do aplicativo Flask
 
 # 1. Variáveis globais no topo do arquivo
 tasks = []  # Lista para armazenar as tarefas
@@ -8,9 +8,10 @@ task_id_control = 1  # Controlador de ID
 
 
 # 2. Definição das Rotas
-@app.route("/")
-def hello():
-    return "Servidor Flask está funcionando!"
+@app.route("/") #chama o app (instancia) e cria  a rota raiz do aplicativo
+def hello(): # a função mostra uma msg dentro da rota raiz
+    return "Servidor Flask está funcionando!" \
+    "\nAcesse /tasks para ver as tarefas."
 
 
 @app.route("/tasks", methods=["POST"])
@@ -77,6 +78,5 @@ def delete_task(task_id):
 
 
 # 3. Inicialização do servidor SEMPRE no final do arquivo
-if __name__ == "__main__":
-    app.run(debug=True)
- 
+if __name__ == "__main__": # verifica se o arquivo está sendo executado diretamente e não importado como módulo
+    app.run(debug=True) #roda o servidor em modo de depuração para facilitar o desenvolvimento
