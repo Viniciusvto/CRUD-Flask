@@ -1,6 +1,6 @@
 from flask import Flask, jsonify, request
 
-app = Flask(__name__)
+app = Flask(__name__)  #
 
 # 1. Variáveis globais no topo do arquivo
 tasks = []  # Lista para armazenar as tarefas
@@ -10,7 +10,7 @@ task_id_control = 1  # Controlador de ID
 # 2. Definição das Rotas
 @app.route("/")
 def hello():
-    return "Hello, World!"
+    return "Servidor Flask está funcionando!"
 
 
 @app.route("/tasks", methods=["POST"])
@@ -39,6 +39,44 @@ def create_task():
     )
 
 
+@app.route("/tasks", methods=["GET"])
+def get_tasks():
+    return jsonify({"tasks": tasks, "total": len(tasks)})
+
+
+@app.route("/tasks/<int:task_id>", methods=["GET"])
+def get_task(task_id):
+    task = next((t for t in tasks if t["id"] == task_id), None)
+    if not task:
+        return jsonify({"error": "tarefa não encontrada"}), 404
+    return jsonify({"task": task})
+
+
+@app.route("/tasks/<int:task_id>", methods=["PUT"])
+def update_task(task_id):
+    task = next((t for t in tasks if t["id"] == task_id), None)
+    if not task:
+        return jsonify({"message": "Tarefa não encontrada"}), 404
+
+    data = request.get_json()
+    # Atualiza os campos da tarefa com os dados enviados
+    task["title"] = data.get("title", task["title"])
+    task["description"] = data.get("description", task["description"])
+    task["completed"] = data.get("completed", task["completed"])
+    return jsonify({"message": "Tarefa atualizada com sucesso!", "task": task})
+
+
+@app.route("/tasks/<int:task_id>", methods=["DELETE"])
+def delete_task(task_id):
+    global tasks
+    task = next((t for t in tasks if t["id"] == task_id), None)
+    if not task:
+        return jsonify({"message": "Tarefa não encontrada"}), 404
+    tasks = [t for t in tasks if t["id"] != task_id]
+    return jsonify({"message": "Tarefa deletada com sucesso!"})
+
+
 # 3. Inicialização do servidor SEMPRE no final do arquivo
 if __name__ == "__main__":
     app.run(debug=True)
+ 
