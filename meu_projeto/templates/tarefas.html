@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tarefas</title>
+    <style>
+        body { font-family: sans-serif; max-width: 600px; margin: 40px auto; padding: 0 16px; }
+        form { display: flex; gap: 8px; margin-bottom: 24px; }
+        form input { flex: 1; padding: 8px; }
+        button { padding: 6px 12px; cursor: pointer; }
+        ul { list-style: none; padding: 0; }
+        li { display: flex; align-items: center; gap: 8px; padding: 8px 0; border-bottom: 1px solid #ddd; }
+        li .texto { flex: 1; }
+        li .descricao { color: #666; font-size: 0.9em; }
+        li.concluida .titulo { text-decoration: line-through; color: #999; }
+        #erro { color: #c00; }
+    </style>
+</head>
+<body>
+
+<h1>Minhas tarefas</h1>
+
+<!-- Formulário para criar uma tarefa (chama POST /tasks) -->
+<form id="form-tarefa">
+    <input id="titulo" placeholder="Título" required>
+    <input id="descricao" placeholder="Descrição (opcional)">
+    <button type="submit">Adicionar</button>
+</form>
+
+<p id="erro"></p>
+<ul id="lista"></ul>
+
+<script>
+    const lista = document.getElementById("lista");
+    const erro = document.getElementById("erro");
+
+    // Função genérica para chamar a API e tratar erros
+    async function chamarApi(url, metodo = "GET", corpo = null) {
+        const opcoes = { method: metodo, headers: { "Content-Type": "application/json" } };
+        if (corpo) opcoes.body = JSON.stringify(corpo);
+
+        const resposta = await fetch(url, opcoes);
+        const dados = await resposta.json();
+        if (!resposta.ok) {
+            erro.textContent = dados.error || dados.message || "Erro ao chamar a API";
+            throw new Error(erro.textContent);
+        }
+        erro.textContent = "";
+        return dados;
+    }
+
+    // GET /tasks: busca as tarefas e desenha a lista na tela
+    async function carregarTarefas() {
+        const dados = await chamarApi("/tasks");
+        lista.innerHTML = "";
+
+        for (const tarefa of dados.tasks) {
+            const item = document.createElement("li");
+            if (tarefa.completed) item.classList.add("concluida");
+
+            // Checkbox para marcar como concluída (PUT /tasks/<id>)
+            const checkbox = document.createElement("input");
+            checkbox.type = "checkbox";
+            checkbox.checked = tarefa.completed;
+            checkbox.onchange = () => atualizarTarefa(tarefa.id, { completed: checkbox.checked });
+
+            // textContent (e não innerHTML) evita que o texto da tarefa seja interpretado como HTML
+            const texto = document.createElement("div");
+            texto.className = "texto";
+            const titulo = document.createElement("div");
+            titulo.className = "titulo";
+            titulo.textContent = tarefa.title;
+            const descricao = document.createElement("div");
+            descricao.className = "descricao";
+            descricao.textContent = tarefa.description;
+            texto.append(titulo, descricao);
+
+            const botaoEditar = document.createElement("button");
+            botaoEditar.textContent = "Editar";
+            botaoEditar.onclick = () => editarTarefa(tarefa);
+
+            const botaoApagar = document.createElement("button");
+            botaoApagar.textContent = "Apagar";
+            botaoApagar.onclick = () => apagarTarefa(tarefa.id);
+
+            item.append(checkbox, texto, botaoEditar, botaoApagar);
+            lista.append(item);
+        }
+    }
+
+    // POST /tasks: cria uma tarefa com os dados do formulário
+    document.getElementById("form-tarefa").onsubmit = async (evento) => {
+        evento.preventDefault(); // impede o formulário de recarregar a página
+        const titulo = document.getElementById("titulo");
+        const descricao = document.getElementById("descricao");
+        await chamarApi("/tasks", "POST", { title: titulo.value, description: descricao.value });
+        titulo.value = "";
+        descricao.value = "";
+        carregarTarefas();
+    };
+
+    // PUT /tasks/<id>: atualiza os campos enviados
+    async function atualizarTarefa(id, campos) {
+        await chamarApi(`/tasks/${id}`, "PUT", campos);
+        carregarTarefas();
+    }
+
+    // Pede o novo título e descrição e chama o PUT
+    function editarTarefa(tarefa) {
+        const novoTitulo = prompt("Novo título:", tarefa.title);
+        if (novoTitulo === null) return; // clicou em Cancelar
+        const novaDescricao = prompt("Nova descrição:", tarefa.description);
+        if (novaDescricao === null) return;
+        atualizarTarefa(tarefa.id, { title: novoTitulo, description: novaDescricao });
+    }
+
+    // DELETE /tasks/<id>: apaga a tarefa depois de confirmar
+    async function apagarTarefa(id) {
+        if (!confirm("Apagar esta tarefa?")) return;
+        await chamarApi(`/tasks/${id}`, "DELETE");
+        carregarTarefas();
+    }
+
+    carregarTarefas(); // carrega a lista assim que a página abre
+</script>
+
+</body>
+</html>

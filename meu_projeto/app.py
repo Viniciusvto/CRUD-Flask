@@ -78,6 +78,13 @@ def delete_task(task_id):
     return jsonify({"message": "Tarefa deletada com sucesso!"})
 
 
+@app.route("/tarefas")
+def tarefas():
+    return render_template(
+        "tarefas.html"
+    )  # página com formulário e botões que chamam as rotas /tasks da API
+
+
 @app.route("/usuarios/<nome_usuario>")
 def usuarios(nome_usuario):
     return render_template(
